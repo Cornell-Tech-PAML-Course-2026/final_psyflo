@@ -1,0 +1,8 @@
+{
+    "best_model": "Multinomial Naive Bayes",
+    "alpha": 1.0,
+    "default_threshold": 0.5,
+    "recommended_screening_threshold": 0.3,
+    "primary_metric": "Recall",
+    "reason_for_selection": "Naive Bayes achieved the strongest overall performance, especially recall, F1-score, and AUC-ROC."
+}
