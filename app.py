@@ -52,9 +52,8 @@ class MultinomialNaiveBayes:
             log_probs.append(log_p)
 
         log_probs = np.column_stack(log_probs)
-
-        # Stable softmax
         log_probs -= log_probs.max(axis=1, keepdims=True)
+
         probs = np.exp(log_probs)
         probs /= probs.sum(axis=1, keepdims=True)
 
@@ -71,13 +70,248 @@ class MultinomialNaiveBayes:
 
 st.set_page_config(
     page_title="Crisis Language Detection",
-    page_icon="🧠",
+    page_icon="✦",
     layout="wide"
 )
 
 
 # ============================================================
-# Load artifacts
+# Global styles from improved UI
+# ============================================================
+
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    color: #2a2520;
+}
+
+[data-testid="stAppViewContainer"],
+[data-testid="stAppViewContainer"] p,
+[data-testid="stAppViewContainer"] span,
+[data-testid="stAppViewContainer"] div,
+[data-testid="stAppViewContainer"] label,
+[data-testid="stAppViewContainer"] li {
+    color: #2a2520;
+}
+
+.stApp {
+    background-color: #f5f0e8;
+    background-image:
+        radial-gradient(ellipse 60% 50% at 80% 10%, rgba(220,190,230,0.35) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 45% at 15% 80%, rgba(180,210,240,0.30) 0%, transparent 55%),
+        radial-gradient(ellipse 45% 40% at 55% 55%, rgba(255,220,180,0.28) 0%, transparent 50%);
+}
+
+[data-testid="stSidebar"] {
+    background-color: #f5f0e8 !important;
+    border-right: none !important;
+    width: 260px !important;
+    min-width: 260px !important;
+    max-width: 260px !important;
+}
+[data-testid="stSidebarResizeHandle"] { display: none !important; }
+[data-testid="stSidebarCollapseButton"] { display: none !important; }
+
+.block-container {
+    max-width: 100% !important;
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+    padding-top: 1rem !important;
+}
+
+[data-testid="stSidebarContent"] {
+    background: rgba(255,255,255,0.45) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+}
+
+[data-testid="stSidebar"] * {
+    font-family: 'DM Sans', sans-serif !important;
+    color: #3a3530 !important;
+}
+
+[data-testid="stSidebar"] .stSlider label {
+    font-size: 0.75rem !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    color: #8a7f74 !important;
+}
+
+h1, h1 *, h1 span, h1 p {
+    font-family: 'DM Serif Display', Georgia, serif !important;
+    font-size: 3.2rem !important;
+    font-weight: 400 !important;
+    color: #1e1a16 !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.15 !important;
+    margin-bottom: 0.2rem !important;
+}
+
+h3, h3 *, h3 span {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 0.72rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.12em !important;
+    text-transform: uppercase !important;
+    color: #8a7f74 !important;
+    margin-bottom: 0.75rem !important;
+}
+
+.subtitle {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    color: #9a8f82;
+    letter-spacing: 0.05em;
+    margin-top: -0.5rem;
+    margin-bottom: 2.5rem;
+}
+
+hr {
+    border: none !important;
+    border-top: 1px solid rgba(0,0,0,0.08) !important;
+    margin: 2rem 0 !important;
+}
+
+.stTextArea textarea {
+    background-color: rgba(255,255,255,0.65) !important;
+    border: 1px solid rgba(0,0,0,0.10) !important;
+    border-radius: 12px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 0.92rem !important;
+    color: #2a2520 !important;
+    padding: 1rem 1.1rem !important;
+    backdrop-filter: blur(8px);
+}
+.stTextArea textarea:focus {
+    border-color: rgba(160,138,184,0.7) !important;
+    box-shadow: 0 0 0 3px rgba(160,138,184,0.20) !important;
+}
+.stTextArea label {
+    font-size: 0.72rem !important;
+    letter-spacing: 0.10em !important;
+    text-transform: uppercase !important;
+    color: #8a7f74 !important;
+    font-weight: 500 !important;
+}
+
+.stButton > button[kind="primary"],
+button[data-testid="baseButton-primary"] {
+    background: #1e1a16 !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 100px !important;
+    padding: 0.6rem 2rem !important;
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.08em !important;
+}
+.stButton > button[kind="primary"] *,
+button[data-testid="baseButton-primary"] * {
+    color: #ffffff !important;
+}
+
+.result-card {
+    background: rgba(255,255,255,0.60);
+    border: 1px solid rgba(0,0,0,0.07);
+    border-radius: 16px;
+    padding: 1.6rem 1.8rem;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.dot-high { color: #dc2626 !important; }
+.dot-low  { color: #2a7a50 !important; }
+
+.badge-high {
+    display: inline-block;
+    background: rgba(220,80,80,0.10);
+    color: #b03030;
+    border: 1px solid rgba(180,60,60,0.25);
+    border-radius: 100px;
+    padding: 0.4rem 1.2rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+}
+.badge-low {
+    display: inline-block;
+    background: rgba(60,150,100,0.10);
+    color: #2a7a50;
+    border: 1px solid rgba(50,130,80,0.25);
+    border-radius: 100px;
+    padding: 0.4rem 1.2rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+}
+
+.score-number {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 3rem;
+    color: #1e1a16;
+    line-height: 1;
+    margin: 0.5rem 0 0.8rem 0;
+}
+
+.progress-track {
+    height: 6px;
+    background: rgba(0,0,0,0.08);
+    border-radius: 100px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+.progress-fill-high {
+    height: 100%;
+    background: linear-gradient(90deg, #e8a0a0, #c05050);
+    border-radius: 100px;
+}
+.progress-fill-low {
+    height: 100%;
+    background: linear-gradient(90deg, #a0d0b8, #3a9060);
+    border-radius: 100px;
+}
+
+.stDataFrame {
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    border: 1px solid rgba(0,0,0,0.07) !important;
+}
+
+.stAlert {
+    border-radius: 12px !important;
+    border: 1px solid rgba(0,0,0,0.07) !important;
+    background: rgba(255,255,255,0.5) !important;
+}
+.stAlert p, .stAlert div, .stAlert span {
+    color: #3a3530 !important;
+}
+
+div[data-testid="stSlider"] div[role="slider"] {
+    background-color: #a08ab8 !important;
+    border-color: #a08ab8 !important;
+}
+div[data-testid="stSlider"] div[role="slider"]:focus,
+div[data-testid="stSlider"] div[role="slider"]:active {
+    box-shadow: 0 0 0 8px rgba(160, 138, 184, 0.25) !important;
+    outline: none !important;
+}
+
+[data-testid="stHeader"] {
+    background-color: #1e1a16 !important;
+}
+
+#MainMenu, footer { visibility: hidden; }
+</style>
+""", unsafe_allow_html=True)
+
+
+# ============================================================
+# Load final model artifacts
 # ============================================================
 
 @st.cache_resource
@@ -116,7 +350,11 @@ model, tfidf, feature_names, metadata = load_artifacts()
 # Sidebar
 # ============================================================
 
-st.sidebar.title("⚙️ Controls")
+st.sidebar.markdown("<br>", unsafe_allow_html=True)
+st.sidebar.markdown(
+    '<p style="font-size:0.68rem;letter-spacing:0.14em;text-transform:uppercase;color:#9a8f82;margin-bottom:1.2rem;">Controls</p>',
+    unsafe_allow_html=True
+)
 
 threshold = st.sidebar.slider(
     "Decision Threshold",
@@ -126,16 +364,17 @@ threshold = st.sidebar.slider(
     step=0.05
 )
 
-st.sidebar.markdown("---")
-st.sidebar.markdown("### Model")
-st.sidebar.write(metadata.get("best_model", "Multinomial Naive Bayes"))
+st.sidebar.markdown("<hr style='border-top:1px solid rgba(0,0,0,0.08);margin:1.5rem 0;'>", unsafe_allow_html=True)
 
-st.sidebar.markdown("### Primary Metric")
-st.sidebar.write(metadata.get("primary_metric", "Recall"))
-
-st.sidebar.markdown("---")
 st.sidebar.markdown(
-    "Lower threshold → higher recall and fewer missed high-risk posts."
+    f"""
+    <p style="font-size:0.78rem;color:#9a8f82;line-height:1.7;">
+    <strong>Model:</strong> {metadata.get("best_model", "Multinomial Naive Bayes")}<br>
+    <strong>Primary metric:</strong> {metadata.get("primary_metric", "Recall")}<br><br>
+    Lower threshold → higher Recall and fewer missed high-risk posts.
+    </p>
+    """,
+    unsafe_allow_html=True
 )
 
 
@@ -143,8 +382,14 @@ st.sidebar.markdown(
 # Main UI
 # ============================================================
 
-st.title("🧠 Crisis Language Detection")
-st.markdown("**Mental Health Risk Screening — INFO 5368, Cornell University**")
+st.markdown("""
+<br>
+<h1 style="font-family:'DM Serif Display',Georgia,serif;font-size:3.2rem;font-weight:400;
+           color:#1e1a16;letter-spacing:-0.02em;line-height:1.15;margin-bottom:0.2rem;">
+    Crisis Language<br>Detection
+</h1>
+<p class="subtitle">Mental Health Risk Screening &nbsp;·&nbsp; INFO 5368, Cornell University</p>
+""", unsafe_allow_html=True)
 
 st.warning(
     "Disclaimer: This tool is for educational and experimental purposes only. "
@@ -154,12 +399,14 @@ st.warning(
 st.markdown("---")
 
 text_input = st.text_area(
-    "Enter text to analyze",
-    placeholder="Paste or type a Reddit post here...",
-    height=170
+    "Text to analyze",
+    placeholder="Paste or type a Reddit post here…",
+    height=160,
+    label_visibility="visible"
 )
 
-analyze_btn = st.button("🔍 Analyze Text", type="primary")
+st.markdown("<br>", unsafe_allow_html=True)
+analyze_btn = st.button("Analyze Text →", type="primary")
 
 
 # ============================================================
@@ -167,7 +414,6 @@ analyze_btn = st.button("🔍 Analyze Text", type="primary")
 # ============================================================
 
 if analyze_btn and text_input.strip():
-
     X = tfidf.transform([text_input])
 
     proba = model.predict_proba(X)
@@ -178,40 +424,54 @@ if analyze_btn and text_input.strip():
         score = float(proba[0])
 
     label = "High Risk" if score >= threshold else "Low Risk"
+    is_high = label == "High Risk"
 
-    col1, col2, col3 = st.columns(3)
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2, gap="large")
 
     with col1:
-        st.markdown("### Risk Label")
-        if label == "High Risk":
-            st.error(f"🔴 **{label}**")
-        else:
-            st.success(f"🟢 **{label}**")
+        badge_html = (
+            '<span class="badge-high"><span class="dot-high">●</span> High Risk</span>'
+            if is_high
+            else '<span class="badge-low"><span class="dot-low">●</span> Low Risk</span>'
+        )
+
+        st.markdown(
+            f"""
+            <div class="result-card">
+                <p style="font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;color:#9a8f82;margin-bottom:0.8rem;">Risk Assessment</p>
+                {badge_html}
+                <p style="font-size:0.78rem;color:#9a8f82;margin-top:1rem;line-height:1.6;">
+                    {"Linguistic patterns associated with crisis language detected." if is_high else "No significant crisis language patterns detected."}
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     with col2:
-        st.markdown("### Risk Score")
-        st.metric("Predicted suicide-risk probability", f"{score:.3f}")
+        fill_class = "progress-fill-high" if is_high else "progress-fill-low"
+        fill_pct = int(score * 100)
 
-    with col3:
-        st.markdown("### Threshold")
-        st.metric("Current threshold", f"{threshold:.2f}")
+        st.markdown(
+            f"""
+            <div class="result-card">
+                <p style="font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;color:#9a8f82;margin-bottom:0rem;">Risk Score</p>
+                <p class="score-number">{score:.3f}</p>
+                <div class="progress-track">
+                    <div class="{fill_class}" style="width:{fill_pct}%;"></div>
+                </div>
+                <p style="font-size:0.75rem;color:#b0a898;margin-top:0.6rem;">
+                    Threshold set at {threshold:.2f} · Model: {metadata.get("best_model", "Multinomial Naive Bayes")}
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-    st.progress(score)
-
+    st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("---")
-
-    st.markdown("### Interpretation")
-
-    if label == "High Risk":
-        st.write(
-            "The model classified this text as high risk because the predicted "
-            "probability is greater than or equal to the selected threshold."
-        )
-    else:
-        st.write(
-            "The model classified this text as low risk because the predicted "
-            "probability is below the selected threshold."
-        )
 
     st.markdown("### Top TF-IDF Features in Input")
 
@@ -235,14 +495,11 @@ if analyze_btn and text_input.strip():
         st.info("No major TF-IDF features found in the input.")
 
 elif analyze_btn and not text_input.strip():
-    st.warning("Please enter some text first.")
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.warning("Please enter some text before analyzing.")
 
-
-# ============================================================
-# Footer
-# ============================================================
 
 st.markdown("---")
 st.caption(
-    "Built with Streamlit. Model trained from scratch using TF-IDF features and NumPy-based classifiers."
+    "Built with Streamlit. Final model trained from scratch using TF-IDF features and NumPy-based classifiers."
 )
